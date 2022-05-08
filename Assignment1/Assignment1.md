@@ -2,7 +2,7 @@ Assignment1
 ================
 
 ``` r
-library(tidyverse)
+library("tidyverse")
 ```
 
     ## Warning: package 'tidyverse' was built under R version 4.1.3
@@ -17,6 +17,39 @@ library(tidyverse)
     ## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
     ## x dplyr::filter() masks stats::filter()
     ## x dplyr::lag()    masks stats::lag()
+
+``` r
+library("igraph")
+```
+
+    ## Warning: package 'igraph' was built under R version 4.1.3
+
+    ## 
+    ## Attaching package: 'igraph'
+
+    ## The following objects are masked from 'package:dplyr':
+    ## 
+    ##     as_data_frame, groups, union
+
+    ## The following objects are masked from 'package:purrr':
+    ## 
+    ##     compose, simplify
+
+    ## The following object is masked from 'package:tidyr':
+    ## 
+    ##     crossing
+
+    ## The following object is masked from 'package:tibble':
+    ## 
+    ##     as_data_frame
+
+    ## The following objects are masked from 'package:stats':
+    ## 
+    ##     decompose, spectrum
+
+    ## The following object is masked from 'package:base':
+    ## 
+    ##     union
 
 ``` r
 library(readr)

@@ -3,15 +3,32 @@ title: "Assignment1"
 output: github_document
 ---
 
-```{r setup, include=FALSE}
+```{r}
+library("tidyverse")
+library("igraph")
+```
+
+```{r}
 library(readr)
 Connections <- read_csv("C:/Users/0/OneDrive/McGill - Summer 2022/ORGB 672 - Org Network Analysis/Data/Connections.csv")
 View(Connections)
 ```
 
 
-```{r setup, include=FALSE}
+```{r}
+Connections %>% 
+  count(Company) %>% 
+  arrange(-n)
+```
+List of Nodes:
+```{r}
+
 ```
 
 
+List of Edges: 
+```{r}
+
+
+```
 
