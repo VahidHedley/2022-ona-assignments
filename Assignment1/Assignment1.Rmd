@@ -3,32 +3,68 @@ title: "Assignment1"
 output: github_document
 ---
 
+Load packages
 ```{r}
 library("tidyverse")
 library("igraph")
+library("tidygraph")
+library("ggraph")
 ```
 
+Upload dataset
 ```{r}
-library(readr)
-Connections <- read_csv("C:/Users/0/OneDrive/McGill - Summer 2022/ORGB 672 - Org Network Analysis/Data/Connections.csv")
-View(Connections)
+network <- read_csv("C:/Users/0/OneDrive/McGill - Summer 2022/ORGB 672 - Org Network Analysis/Data/Connections.csv")
+network %>% head(5)
 ```
 
-
+Get the total count of employers
 ```{r}
-Connections %>% 
+network %>% 
   count(Company) %>% 
   arrange(-n)
 ```
-List of Nodes:
+Nodes dataframe
 ```{r}
+# remove extra characters from last name and create a unique label 
+network$last_initial <- substr(network$`Last Name`, 1, 1)
+network$label <- paste(network$`First Name`, network$last_initial)
 
+# filter for only the unique node labels
+nodes <- network %>% distinct(label)
+nodes <- nodes %>% rowid_to_column('Main_ID')
+nodes %>% head(5) 
 ```
 
-
-List of Edges: 
+Edges Dataframe
 ```{r}
+# create a duplicate dataframe and merge with original
+duplicate <- network
+colnames(duplicate) <- paste(colnames(duplicate), "2", sep="")
+join <- tidyr::crossing(network, duplicate, .name_repair="minimal")
 
+# remove contacts connected to themselves and join on unique companies
+edges <- filter(join, join$Company == join$Company2 & join$label != join$label2)
+edges <- edges %>% select(label, Company, label2, Company2)
+edges <- edges %>% 
+  left_join(nodes, by = c("label" = "label")) %>% 
+  rename(Node_1 = Main_ID)
+edges <- edges %>% 
+  left_join(nodes, by = c("label2" = "label")) %>% 
+  rename(Node_2 = Main_ID)
 
+# final edges dataframe
+edges <- select(edges, Node_1, Node_2)
+edges %>% head(5) 
+```
+
+Fit the model
+```{r}
+final_network <- tbl_graph(nodes=nodes, edges=edges, directed=FALSE)
+final_network
+```
+
+Plot the final graph
+```{r}
+ggraph(final_network) + geom_edge_link() + geom_node_point() + theme_graph()
 ```
 
