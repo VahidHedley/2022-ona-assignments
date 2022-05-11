@@ -1,0 +1,93 @@
+---
+title: "Untitled"
+output: github_document
+---
+
+Load packages
+```{r}
+library(igraph)
+library(tidyverse)
+library(network)
+```
+Upload edges list
+```{r}
+input <- read_csv("C:/Users/hedle/OneDrive/McGill - Summer 2022/ORGB 672 - Org Network Analysis/Data/input.csv")
+View(input)
+```
+
+
+```{r}
+sources <- input %>%
+  distinct(source) %>%
+  rename(label = source)
+
+destinations <- input %>%
+  distinct(destination) %>%
+  rename(label = destination)
+
+```
+
+```{r}
+nodes <- full_join(sources, destinations, by = "label")
+nodes
+
+```
+
+```{r}
+nodes <- nodes %>% rowid_to_column("id")
+nodes
+```
+
+```{r}
+per_route <- input %>%  
+  group_by(source, destination) %>%
+  summarise(weight = n()) %>% 
+  ungroup()
+per_route
+```
+
+
+```{r}
+edges <- per_route %>% 
+  left_join(nodes, by = c("source" = "label")) %>% 
+  rename(from = id)
+
+edges <- edges %>% 
+  left_join(nodes, by = c("destination" = "label")) %>% 
+  rename(to = id)
+```
+
+
+
+```{r}
+edges <- select(edges, from, to, weight)
+edges
+```
+
+```{r}
+routes_network <- network(edges, vertex.attr = nodes, matrix.type = "edgelist", ignore.eval = FALSE)
+```
+
+
+```{r}
+class(routes_network)
+```
+
+```{r}
+routes_network
+```
+
+```{r}
+plot(routes_network, vertex.cex = 3)
+```
+
+```{r}
+plot(routes_network, vertex.cex = 3, mode = "circle")
+```
+
+```{r}
+
+```
+
+
+
