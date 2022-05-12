@@ -2,15 +2,9 @@
 title: "Ex2"
 output:
   github_document:
-    fig_width: 5
-    fig_height: 5
-    dev: jpeg
+    html_preview: true
 ---
 
-
-```{r global_options}
-knitr::opts_chunk$set(fig.path='Figs/')
-```
 
 Load packages
 ```{r}
