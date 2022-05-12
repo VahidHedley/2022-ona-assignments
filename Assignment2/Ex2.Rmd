@@ -3,6 +3,11 @@ title: "Ex2"
 output: github_document
 ---
 
+
+```{r global_options}
+knitr::opts_chunk$set(fig.path='Figs/')
+```
+
 Load packages
 ```{r}
 library(tidyverse)
