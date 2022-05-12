@@ -1,6 +1,6 @@
 ---
 title: "Ex2"
-output: github_document
+output: rmarkdown::github_document
 ---
 
 
