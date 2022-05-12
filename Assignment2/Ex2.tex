@@ -1,0 +1,435 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Ex2},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\title{Ex2}
+\author{}
+\date{\vspace{-2.5em}}
+
+\begin{document}
+\maketitle
+
+Load packages
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(tidyverse)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
+\end{verbatim}
+
+\begin{verbatim}
+## v ggplot2 3.3.6     v purrr   0.3.4
+## v tibble  3.1.7     v dplyr   1.0.9
+## v tidyr   1.2.0     v stringr 1.4.0
+## v readr   2.1.2     v forcats 0.5.1
+\end{verbatim}
+
+\begin{verbatim}
+## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(igraph)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Attaching package: 'igraph'
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:dplyr':
+## 
+##     as_data_frame, groups, union
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:purrr':
+## 
+##     compose, simplify
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:tidyr':
+## 
+##     crossing
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:tibble':
+## 
+##     as_data_frame
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:stats':
+## 
+##     decompose, spectrum
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:base':
+## 
+##     union
+\end{verbatim}
+
+For this assignment, I created an edges list in which the open seats
+(A:D) were encoded as an extension of the existing numbers within the
+occupied seats. For example, D was encoded as a numeric value of 7, B=8,
+A=9, and C=10. After this was done, the finalized edges list could be
+uploaded for analysis:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{edges }\OtherTok{\textless{}{-}} \FunctionTok{read\_csv}\NormalTok{(}\StringTok{"C:/Users/hedle/OneDrive/McGill {-} Summer 2022/ORGB 672 {-} Org Network Analysis/Data/input.csv"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Rows: 17 Columns: 2
+## -- Column specification --------------------------------------------------------
+## Delimiter: ","
+## dbl (2): source, destination
+## 
+## i Use `spec()` to retrieve the full column specification for this data.
+## i Specify the column types or set `show_col_types = FALSE` to quiet this message.
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{View}\NormalTok{(edges)}
+\end{Highlighting}
+\end{Shaded}
+
+Here I create a dataframe with distinct values for both the source and
+destination seats and rename the columns as `label' to perform a join to
+include all unique seat locations.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sources }\OtherTok{\textless{}{-}}\NormalTok{ edges }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{distinct}\NormalTok{(source) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{rename}\NormalTok{(}\AttributeTok{label =}\NormalTok{ source)}
+
+\NormalTok{destinations }\OtherTok{\textless{}{-}}\NormalTok{ edges }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{distinct}\NormalTok{(destination) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{rename}\NormalTok{(}\AttributeTok{label =}\NormalTok{ destination)}
+\end{Highlighting}
+\end{Shaded}
+
+Create node list:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{nodes }\OtherTok{\textless{}{-}} \FunctionTok{full\_join}\NormalTok{(sources, destinations, }\AttributeTok{by =} \StringTok{"label"}\NormalTok{)}
+\NormalTok{nodes}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 10 x 1
+##    label
+##    <dbl>
+##  1     1
+##  2     2
+##  3     9
+##  4    10
+##  5     8
+##  6     7
+##  7     3
+##  8     6
+##  9     4
+## 10     5
+\end{verbatim}
+
+Create the network object: In this case, we create an undirected graph
+as the communication channels from both `source' and `destination' seats
+is reciprocal and assumes no inherent direction.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{network }\OtherTok{\textless{}{-}} \FunctionTok{graph\_from\_data\_frame}\NormalTok{(}\AttributeTok{d =}\NormalTok{ edges, }\AttributeTok{vertices =}\NormalTok{ nodes, }\AttributeTok{directed =} \ConstantTok{FALSE}\NormalTok{)}
+\NormalTok{network}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## IGRAPH 8ecc164 UN-- 10 17 -- 
+## + attr: name (v/c)
+## + edges from 8ecc164 (vertex names):
+##  [1] 1 --2  2 --9  9 --8  9 --10 10--8  10--3  10--4  10--7  8 --7  8 --3 
+## [11] 7 --5  7 --3  3 --4  3 --5  7 --6  6 --5  8 --6
+\end{verbatim}
+
+Plot the network:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{plot}\NormalTok{(network, }\AttributeTok{edge.arrow.size =} \FloatTok{0.2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Ex2_files/figure-latex/unnamed-chunk-6-1.pdf}
+
+We can further enhance the network visualization by plotting the nodes
+wherein which their size is a function of their degree centrality. This
+is a more intuitive plot as it naturally highlights the most influential
+nodes.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{degree }\OtherTok{\textless{}{-}} \FunctionTok{degree}\NormalTok{(network, }\AttributeTok{v =} \FunctionTok{V}\NormalTok{(network), }\AttributeTok{mode =} \FunctionTok{c}\NormalTok{(}\StringTok{"all"}\NormalTok{))}
+\NormalTok{degree}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  1  2  9 10  8  7  3  6  4  5 
+##  1  2  3  5  5  5  5  3  2  3
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{V}\NormalTok{(network)}\SpecialCharTok{$}\NormalTok{size }\OtherTok{\textless{}{-}}\NormalTok{ (degree}\SpecialCharTok{*}\DecValTok{6}\NormalTok{) }
+\FunctionTok{plot}\NormalTok{(network, }\AttributeTok{edge.arrow.size =}\NormalTok{ .}\DecValTok{5}\NormalTok{, }\AttributeTok{vertex.color =} \StringTok{"green"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Ex2_files/figure-latex/unnamed-chunk-8-1.pdf}
+
+Compute network metrics:
+
+Degree Centrality: we can observe that nodes 10, 8, 7, and 3 have the
+highest scores degree centrality. Degree centrality is a measure of the
+number of adjacent edges to each node, and in this case these particular
+nodes would be the ones of greatest influence and the seats that would
+be best to sit in as a means to network and improve chances of building
+relationships with Facebook colleagues.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{sort}\NormalTok{(}\FunctionTok{degree}\NormalTok{(network))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  1  2  4  9  6  5 10  8  7  3 
+##  1  2  2  3  3  3  5  5  5  5
+\end{verbatim}
+
+Betweenness: Measures the number of shortest paths between nodes that
+pass through a particular node. We can observe that node 9 has the most
+influence in channeling information between both segments of the
+network. If we observe the graph plot above, we can clearly see that
+this node serves as a gateway for both clusters in the network and
+should also be considered as a potential seat to maximize communication
+and networking chances. This seat may be a preferred option and can be
+assessed as a choice to sit in with respect to the other most
+influential nodes as outlined in the computations below.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{sort}\NormalTok{(}\FunctionTok{betweenness}\NormalTok{(network))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##          1          4          5          6          7          3          2 
+##  0.0000000  0.0000000  0.5333333  0.9333333  3.2666667  4.6333333  8.0000000 
+##         10          8          9 
+##  8.6000000  9.0333333 14.0000000
+\end{verbatim}
+
+Eigenvector centrality: another measure of centrality which furthermore
+provides an overview of the relative influence of a particular node
+within a network. At a high level, a higher eigenvector score indicates
+that a node is connected to many nodes who themselves also have high
+scores. We can observe a similar pattern as with the top nodes for the
+degree scores, with 10, 3, 8, and 7 all scoring in the top 4 of most
+influential nodes.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{sort}\NormalTok{(}\FunctionTok{eigen\_centrality}\NormalTok{(network)}\SpecialCharTok{$}\NormalTok{vector)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##          1          2          4          9          5          6         10 
+## 0.03059284 0.12661070 0.46122992 0.49339477 0.62726236 0.62852844 0.94139110 
+##          3          8          7 
+## 0.96744261 0.97394849 1.00000000
+\end{verbatim}
+
+Page Rank: a variation of Eigenvector centrality which approximates the
+probability that any message will arrive to a particular node. The same
+most influential nodes can be observed with the scores all yielding
+results falling within similar orders of magnitude as per the
+eigenvector centrality results.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{sort}\NormalTok{(}\FunctionTok{page\_rank}\NormalTok{(network)}\SpecialCharTok{$}\NormalTok{vector)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##          1          4          5          6          2          9          7 
+## 0.05193766 0.06076573 0.08363573 0.08386262 0.08691214 0.09799457 0.13110208 
+##          3          8         10 
+## 0.13286649 0.13457929 0.13634370
+\end{verbatim}
+
+We can now quickly take a look at the overall network properties to try
+to describe some of the characteristics of the graph as a whole.
+
+Diameter: represents the length of the longest path between the two most
+distant nodes. This is of interest if we were wanting to see how closely
+connected the network is, and as we can see with a diameter of 5, there
+are some seats which are very clearly distant from one another and
+should be avoided (seats 1, 4, or 5)
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{diameter}\NormalTok{(network, }\AttributeTok{directed=}\ConstantTok{FALSE}\NormalTok{, }\AttributeTok{weights=}\ConstantTok{NA}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 5
+\end{verbatim}
+
+We can see the actual path:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{get\_diameter}\NormalTok{(network, }\AttributeTok{directed=}\ConstantTok{FALSE}\NormalTok{, }\AttributeTok{weights=}\ConstantTok{NA}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## + 6/10 vertices, named, from 8ecc164:
+## [1] 1  2  9  10 7  5
+\end{verbatim}
+
+It is fair to make the conclusion based upon the results obtained from
+computing degree centrality, eigenvector centrality, and page rank that
+the most optimal location to sit so as to maximize networking
+opportunities on the `Facebook Bus' are seats 7, 3, 8, or 10. The
+implications of sitting in one of these seats simply means that you
+would maximize your chances of engaging in meaningful discussion with
+your Facebook colleages and thus improve your chances of securing a full
+time position. Seat 9 may also be of interest as this node could
+potentially relay information from the two separate clusters in the
+network and furthermore improve chances of obtaining valuable
+information from a broader range of individuals.
+
+\end{document}

@@ -35,7 +35,6 @@ network
 ```
 
 Plot the network: 
-knitr::include_graphics("unnamed-chunk-6-1.png")
 ```{r}
 plot(network, edge.arrow.size = 0.2)
 ```
@@ -44,7 +43,6 @@ We can further enhance the network visualization by plotting the nodes wherein w
 degree <- degree(network, v = V(network), mode = c("all"))
 degree
 ```
-knitr::include_graphics("unnamed-chunk-8-1.png")
 ```{r}
 V(network)$size <- (degree*6) 
 plot(network, edge.arrow.size = .5, vertex.color = "green") 
