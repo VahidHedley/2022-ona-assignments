@@ -115,13 +115,13 @@ network <- graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
 network
 ```
 
-    ## IGRAPH 0624a55 UN-- 10 17 -- 
+    ## IGRAPH f0c5acf UN-- 10 17 -- 
     ## + attr: name (v/c)
-    ## + edges from 0624a55 (vertex names):
+    ## + edges from f0c5acf (vertex names):
     ##  [1] 1 --2  2 --9  9 --8  9 --10 10--8  10--3  10--4  10--7  8 --7  8 --3 
     ## [11] 7 --5  7 --3  3 --4  3 --5  7 --6  6 --5  8 --6
 
-Plot the network:
+Plot the network: knitr::include_graphics(“unnamed-chunk-6-1.png”)
 
 ``` r
 plot(network, edge.arrow.size = 0.2)
@@ -139,6 +139,8 @@ degree
 
     ##  1  2  9 10  8  7  3  6  4  5 
     ##  1  2  3  5  5  5  5  3  2  3
+
+knitr::include_graphics(“unnamed-chunk-8-1.png”)
 
 ``` r
 V(network)$size <- (degree*6) 
@@ -234,7 +236,7 @@ We can see the actual path:
 get_diameter(network, directed=FALSE, weights=NA)
 ```
 
-    ## + 6/10 vertices, named, from 0624a55:
+    ## + 6/10 vertices, named, from f0c5acf:
     ## [1] 1  2  9  10 7  5
 
 It is fair to make the conclusion based upon the results obtained from
