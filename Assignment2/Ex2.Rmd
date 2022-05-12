@@ -1,6 +1,6 @@
 ---
 title: "Ex2"
-output: pdf_document
+output: github_document
 ---
 
 Load packages
@@ -8,13 +8,11 @@ Load packages
 library(tidyverse)
 library(igraph)
 ```
-
 For this assignment, I created an edges list in which the open seats (A:D) were encoded as an extension of the existing numbers within the occupied seats. For example, D was encoded as a numeric value of 7, B=8, A=9, and C=10. After this was done, the finalized edges list could be uploaded for analysis: 
 ```{r}
 edges <- read_csv("C:/Users/hedle/OneDrive/McGill - Summer 2022/ORGB 672 - Org Network Analysis/Data/input.csv")
 View(edges)
 ```
-
 Here I create a dataframe with distinct values for both the source and destination seats and rename the columns as 'label' to perform a join to include all unique seat locations.
 ```{r}
 sources <- edges %>%
@@ -25,13 +23,11 @@ destinations <- edges %>%
   distinct(destination) %>%
   rename(label = destination)
 ```
-
 Create node list: 
 ```{r}
 nodes <- full_join(sources, destinations, by = "label")
 nodes
 ```
-
 Create the network object: In this case, we create an undirected graph as the communication channels from both 'source' and 'destination' seats is reciprocal and assumes no inherent direction. 
 ```{r}
 network <- graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
@@ -41,7 +37,6 @@ Plot the network:
 ```{r}
 plot(network, edge.arrow.size = 0.2)
 ```
-
 We can further enhance the network visualization by plotting the nodes wherein which their size is a function of their degree centrality. This is a more intuitive plot as it naturally highlights the most influential nodes. 
 ```{r}
 degree <- degree(network, v = V(network), mode = c("all"))
@@ -51,29 +46,24 @@ degree
 V(network)$size <- (degree*6) 
 plot(network, edge.arrow.size = .5, vertex.color = "green") 
 ```
-
 Compute network metrics: 
 
 Degree Centrality: we can observe that nodes 10, 8, 7, and 3 have the highest scores degree centrality. Degree centrality is a measure of the number of adjacent edges to each node, and in this case these particular nodes would be the ones of greatest influence and the seats that would be best to sit in as a means to network and improve chances of building relationships with Facebook colleagues. 
 ```{r}
 sort(degree(network))
 ```
-
 Betweenness: Measures the number of shortest paths between nodes that pass through a particular node. We can observe that node 9 has the most influence in channeling information between both segments of the network. If we observe the graph plot above, we can clearly see that this node serves as a gateway for both clusters in the network and should also be considered as a potential seat to maximize communication and networking chances. This seat may be a preferred option and can be assessed as a choice to sit in with respect to the other most influential nodes as outlined in the computations below.
 ```{r}
 sort(betweenness(network))
 ```
-
 Eigenvector centrality: another measure of centrality which furthermore provides an overview of the relative influence of a particular node within a network. At a high level, a higher eigenvector score indicates that a node is connected to many nodes who themselves also have high scores. We can observe a similar pattern as with the top nodes for the degree scores, with 10, 3, 8, and 7 all scoring in the top 4 of most influential nodes. 
 ```{r}
 sort(eigen_centrality(network)$vector)
 ```
-
 Page Rank: a variation of Eigenvector centrality which approximates the probability that any message will arrive to a particular node. The same most influential nodes can be observed with the scores all yielding results falling within similar orders of magnitude as per the eigenvector centrality results. 
 ```{r}
 sort(page_rank(network)$vector)
 ```
-
 We can now quickly take a look at the overall network properties to try to describe some of the characteristics of the graph as a whole. 
 
 Diameter: represents the length of the longest path between the two most distant nodes. This is of interest if we were wanting to see how closely connected the network is, and as we can see with a diameter of 5, there are some seats which are very clearly distant from one another and should be avoided (seats 1, 4, or 5) 
@@ -84,5 +74,4 @@ We can see the actual path:
 ```{r}
 get_diameter(network, directed=FALSE, weights=NA)
 ```
-
 It is fair to make the conclusion based upon the results obtained from computing degree centrality, eigenvector centrality, and page rank that the most optimal location to sit so as to maximize networking opportunities on the 'Facebook Bus' are seats 7, 3, 8, or 10. The implications of sitting in one of these seats simply means that you would maximize your chances of engaging in meaningful discussion with your Facebook colleages and thus improve your chances of securing a full time position. Seat 9 may also be of interest as this node could potentially relay information from the two separate clusters in the network and furthermore improve chances of obtaining valuable information from a broader range of individuals.
