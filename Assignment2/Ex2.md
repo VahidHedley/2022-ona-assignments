@@ -119,9 +119,9 @@ network <- graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
 network
 ```
 
-    ## IGRAPH 01c030a UN-- 10 17 -- 
+    ## IGRAPH acdb9f0 UN-- 10 17 -- 
     ## + attr: name (v/c)
-    ## + edges from 01c030a (vertex names):
+    ## + edges from acdb9f0 (vertex names):
     ##  [1] 1 --2  2 --9  9 --8  9 --10 10--8  10--3  10--4  10--7  8 --7  8 --3 
     ## [11] 7 --5  7 --3  3 --4  3 --5  7 --6  6 --5  8 --6
 
@@ -131,7 +131,7 @@ Plot the network:
 plot(network, edge.arrow.size = 0.2)
 ```
 
-![](Figs/unnamed-chunk-6-1.png)<!-- --> We can further enhance the
+![](Figs/unnamed-chunk-6-1.jpeg)<!-- --> We can further enhance the
 network visualization by plotting the nodes wherein which their size is
 a function of their degree centrality. This is a more intuitive plot as
 it naturally highlights the most influential nodes.
@@ -149,7 +149,7 @@ V(network)$size <- (degree*6)
 plot(network, edge.arrow.size = .5, vertex.color = "green") 
 ```
 
-![](Figs/unnamed-chunk-8-1.png)<!-- --> Compute network metrics:
+![](Figs/unnamed-chunk-8-1.jpeg)<!-- --> Compute network metrics:
 
 Degree Centrality: we can observe that nodes 10, 8, 7, and 3 have the
 highest scores degree centrality. Degree centrality is a measure of the
@@ -237,7 +237,7 @@ We can see the actual path:
 get_diameter(network, directed=FALSE, weights=NA)
 ```
 
-    ## + 6/10 vertices, named, from 01c030a:
+    ## + 6/10 vertices, named, from acdb9f0:
     ## [1] 1  2  9  10 7  5
 
 It is fair to make the conclusion based upon the results obtained from
