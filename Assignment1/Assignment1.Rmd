@@ -54,7 +54,7 @@ edges <- edges %>%
 
 # final edges dataframe
 edges <- select(edges, Node_1, Node_2)
-edges %>% head(5) 
+edges %>% head(5)   df 
 ```
 
 Fit the model

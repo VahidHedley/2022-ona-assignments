@@ -115,9 +115,9 @@ network <- graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
 network
 ```
 
-    ## IGRAPH 6cc3e4b UN-- 10 17 -- 
+    ## IGRAPH 2a2fa14 UN-- 10 17 -- 
     ## + attr: name (v/c)
-    ## + edges from 6cc3e4b (vertex names):
+    ## + edges from 2a2fa14 (vertex names):
     ##  [1] 1 --2  2 --9  9 --8  9 --10 10--8  10--3  10--4  10--7  8 --7  8 --3 
     ## [11] 7 --5  7 --3  3 --4  3 --5  7 --6  6 --5  8 --6
 
@@ -234,7 +234,7 @@ We can see the actual path:
 get_diameter(network, directed=FALSE, weights=NA)
 ```
 
-    ## + 6/10 vertices, named, from 6cc3e4b:
+    ## + 6/10 vertices, named, from 2a2fa14:
     ## [1] 1  2  9  10 7  5
 
 It is fair to make the conclusion based upon the results obtained from
