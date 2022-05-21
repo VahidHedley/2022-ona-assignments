@@ -1,0 +1,471 @@
+---
+title: "Exercise 3"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(arrow)
+library(gender)
+library(wru)
+library(ggplot2)
+library(igraph)
+library(CINNA)
+
+#library(ggpubr)
+```
+
+### Load data
+
+```{r load-data}
+applications <- read_parquet("C:/Users/hedle/OneDrive/McGill - Summer 2022/ORGB 672 - Org Network Analysis/Data/app_data_sample.parquet")
+edges <- read_csv("C:/Users/hedle/OneDrive/McGill - Summer 2022/ORGB 672 - Org Network Analysis/Data/edges_sample.csv")
+
+applications
+edges
+```
+
+# Feature engineering
+
+## Get gender for examiners
+
+We'll get gender based on the first name of the examiner, which is recorded in the field `examiner_name_first`. We'll use library `gender` for that, relying on a modified version of their own [example](https://cran.r-project.org/web/packages/gender/vignettes/predicting-gender.html).
+
+Note that there are over 2 million records in the applications table -- that's because there are many records for each examiner, as many as the number of applications that examiner worked on during this time frame. Our first step therefore is to get all *unique* names in a separate list `examiner_names`. We will then guess gender for each one and will join this table back to the original dataset. So, let's get names without repetition:
+
+```{r gender}
+# get a list of first names without repetitions
+examiner_names <- applications %>% 
+  distinct(examiner_name_first)
+
+# get a table of names and gender
+examiner_names_gender <- examiner_names %>% 
+  do(results = gender(.$examiner_name_first, method = "ssa")) %>% 
+  unnest(cols = c(results), keep_empty = TRUE) %>% 
+  select(
+    examiner_name_first = name,
+    gender,
+    proportion_female)
+
+# remove extra columns from the gender table
+examiner_names_gender <- examiner_names_gender %>% 
+  select(examiner_name_first, gender)
+
+# joining gender back to the dataset
+applications <- applications %>% 
+  left_join(examiner_names_gender, by = "examiner_name_first")
+
+# cleaning up
+rm(examiner_names)
+rm(examiner_names_gender)
+gc()
+```
+
+## Guess the examiner's race
+
+We'll now use package `wru` to estimate likely race of an examiner. Just like with gender, we'll get a list of unique names first, only now we are using surnames.
+
+```{r race}
+# get a distinct dataframe of examiner surnames
+examiner_surnames <- applications %>% 
+  select(surname = examiner_name_last) %>% 
+  distinct()
+
+# apply the predict_race() function to determine examiner's race
+examiner_race <- predict_race(voter.file = examiner_surnames, surname.only = T) %>% 
+  as_tibble()
+
+# pick a race category with the highest probability for each last name and assign it respectively 
+examiner_race <- examiner_race %>% 
+  mutate(max_race_p = pmax(pred.asi, pred.bla, pred.his, pred.oth, pred.whi)) %>% 
+  mutate(race = case_when(
+    max_race_p == pred.asi ~ "Asian",
+    max_race_p == pred.bla ~ "black",
+    max_race_p == pred.his ~ "Hispanic",
+    max_race_p == pred.oth ~ "other",
+    max_race_p == pred.whi ~ "white",
+    TRUE ~ NA_character_))
+
+# removing extra columns
+examiner_race <- examiner_race %>% 
+  select(surname,race)
+
+# join back to original dataframe
+applications <- applications %>% 
+  left_join(examiner_race, by = c("examiner_name_last" = "surname"))
+
+# cleaning up
+rm(examiner_race)
+rm(examiner_surnames)
+gc()
+```
+
+## Compute examiner's tenure 
+
+To figure out the timespan for which we observe each examiner in the applications data, let's find the first and the last observed date for each examiner. We'll first get examiner IDs and application dates in a separate table, for ease of manipulation. We'll keep examiner ID (the field `examiner_id`), and earliest and latest dates for each application (`filing_date` and `appl_status_date` respectively). We'll use functions in package `lubridate` to work with date and time values.
+
+```{r tenure}
+# consolidate examiner ID's and application dates in separate dataframe
+examiner_dates <- applications %>% 
+  select(examiner_id, filing_date, appl_status_date) 
+
+# create new variables for examiners start and end date
+examiner_dates <- examiner_dates %>% 
+  mutate(start_date = ymd(filing_date), end_date = as_date(dmy_hms(appl_status_date)))
+
+# identify earliest and latest dates for examiners and compute the difference 
+examiner_dates <- examiner_dates %>% 
+  group_by(examiner_id) %>% 
+  summarise(
+    earliest_date = min(start_date, na.rm = TRUE), 
+    latest_date = max(end_date, na.rm = TRUE),
+    tenure_days = interval(earliest_date, latest_date) %/% days(1)
+    ) %>% 
+  filter(year(latest_date)<2018)
+
+# join back to original dataframe
+applications <- applications %>% 
+  left_join(examiner_dates, by = "examiner_id")
+
+# cleaning up
+rm(examiner_dates)
+gc()
+```
+
+#  Exploratory Analysis
+
+## Pre-processing for Working Groups
+
+```{r working-group}
+# isolate the first three digits from examiner_art_unit variable to obtain working groups
+applications$examiner_short <- floor(applications$examiner_art_unit/10)
+
+# conduct some intial exploratory analysis of the distribution of working groups
+total_count_examiners <- applications %>% 
+  count(examiner_short, sort = TRUE)
+attach(total_count_examiners)
+summary(n)
+boxplot(n)
+hist(n) 
+
+# scatter plot to observe total count of examiners by working group
+plot <- ggplot(total_count_examiners, aes(y=n, x=examiner_short))
+scatter <- geom_point(color='blue')
+plot+scatter
+
+# select the largest working group and a medium sized working group for comparisons  
+WG1 <- applications[applications$examiner_short == 212, ] 
+WG2 <- applications[applications$examiner_short == 162, ]
+# for the sake of simplicity, workgroup 212 will be defined as WG1 and workgroup 162 will be defined as WG2
+
+# drop null observations
+WG1 <- drop_na(WG1, gender)
+WG2 <- drop_na(WG2, gender)
+WG1 <- drop_na(WG1, race)
+WG2 <- drop_na(WG2, race)
+WG1 <- drop_na(WG1, tenure_days)
+WG2 <- drop_na(WG2, tenure_days)
+
+# convert categorical variables to factor 
+WG1$gender <- as.factor(WG1$gender)
+WG1$race <- as.factor(WG1$race)
+WG2$gender <- as.factor(WG2$gender)
+WG2$race <- as.factor(WG2$race)
+```
+
+### Working groups summary statistics 
+
+```{r working-group-stats}
+summary(WG1)
+summary(WG2)
+```
+
+## Summarize Race Distribution by Working Group
+
+```{r race-stats}
+# obtain raw count and percentage of race by working group
+WG1_Race <- WG1 %>%
+  group_by(race) %>%
+  summarise(WG = "Work Group 1", count = n()) %>%
+  mutate(percentage  = round(count / sum(count), 2)) %>% 
+  arrange(desc(percentage))
+head(WG1_Race)
+
+WG2_Race <- WG2 %>%
+  group_by(race) %>%
+  summarise(WG = "Work Group 2", count = n()) %>%
+  mutate(percentage = round(count / sum(count), 2)) %>% 
+  arrange(desc(percentage))
+head(WG2_Race)
+```
+
+### Visualization of Race by Working Group
+
+We can explore the distribution of race by both raw counts and the relative percentages. As we will see, the raw counts are not as useful to draw inference given the size variance between both working groups, with WG2 being over two times larger.
+
+```{r race-visualization}
+# visualization of race by working group as a function of percentage
+comps_perc <- rbind(WG1_Race, WG2_Race)
+ggplot(comps_perc, aes(x=race, y=percentage, fill=WG)) + geom_bar(stat="identity", position="dodge")
+
+# visualization of race by working group as a function of raw counts
+comps_raw <- rbind(WG1_Race, WG2_Race)
+ggplot(comps_raw, aes(x=race, y=count, fill=WG)) + geom_bar(stat="identity", position="dodge")
+```
+
+## Summarize Gender Distribution by Working Group
+
+```{r gender-stats}
+# obtain raw count and percentage of gender by working group
+WG1_Gender <- WG1 %>%
+  group_by(gender) %>%
+  summarise(WG = "Work Group 1", count = n()) %>%
+  mutate(percentage = round(count / sum(count), 2)) %>% 
+  arrange(desc(percentage))
+head(WG1_Gender)
+
+WG2_Gender <- WG2 %>%
+  group_by(gender) %>%
+  summarise(WG = "Work Group 2", count = n()) %>%
+  mutate(percentage = round(count / sum(count), 2)) %>% 
+  arrange(desc(percentage))
+head(WG2_Gender)
+```
+
+### Visualization of Gender by Working Group
+
+```{r gender-visualization}
+# visualization of gender by working group as a function of percentage
+comps_perc <- rbind(WG1_Gender, WG2_Gender)
+ggplot(comps_perc, aes(x=gender, y=percentage, fill=WG)) + geom_bar(stat="identity", position="dodge")
+
+# visualization of gender by working group as a function of raw counts
+comps_raw <- rbind(WG1_Gender, WG2_Gender)
+ggplot(comps_raw, aes(x=gender, y=count, fill=WG)) + geom_bar(stat="identity", position="dodge")
+```
+
+## Summarize Examiner Tenure by Race and Gender
+
+```{r tenure-race-gender}
+# generate new variable which looks at average tenure days by race and gender
+WG1_GenderRace <- WG1 %>%
+   group_by(gender, race) %>% 
+   summarise_at(vars("tenure_days"), mean)
+WG2_GenderRace <- WG2 %>%
+   group_by(gender, race) %>% 
+   summarise_at(vars("tenure_days"), mean)
+
+# generate a new variable to describe the workgroups
+WG1_GenderRace$WG <- "Work Group 1"
+WG2_GenderRace$WG <- "Work Group 2"
+
+# rename gender for more clear visualization
+WG1_GenderRace <- WG1_GenderRace %>%
+    mutate(gender = recode(gender, female = "FM", male = "ML"))
+WG2_GenderRace <- WG2_GenderRace %>%
+    mutate(gender = recode(gender, female = "FM", male = "ML"))
+
+# create new variable that is a combination of both 
+WG1_GenderRace$gender_race <- paste(WG1_GenderRace$gender, WG1_GenderRace$race)
+WG2_GenderRace$gender_race <- paste(WG2_GenderRace$gender, WG2_GenderRace$race)
+```
+
+### Visualization of Tenure by Working Group, Race and Gender
+
+```{r tenure-race-gender-visualization}
+aggregate <- rbind(WG1_GenderRace, WG2_GenderRace)
+ggplot(aggregate, aes(x=gender_race, y=tenure_days, fill=WG)) + geom_bar(stat="identity", position="dodge")
+```
+
+An interesting observation is that there is a large discrepancy between the **average tenure days** for black females between WG1 and WG2. 
+
+# Network Analysis
+
+## Nodes
+
+### Create node dataframe
+
+We must first merge the edges dataframe with each respective work group and then define both node lists separately:  
+```{r nodes}
+# drop the nulls in the edges dataframe 
+edges <- drop_na(edges, ego_examiner_id)
+edges <-drop_na(edges, alter_examiner_id)
+
+# merge original edges dataframe with both workgroups 
+FULLWG1 <- inner_join(WG1, edges, by = "application_number", copy = FALSE) 
+FULLWG2 <- inner_join(WG2, edges, by = "application_number", copy = FALSE) 
+
+# generate a nodes dataframe for WG1 for both the ego_examiner_id and alter_examiner_id 
+WG1_nodes_ego <- FULLWG1 %>% 
+  distinct(ego_examiner_id) %>%
+  rename(ID = ego_examiner_id)
+WG1_nodes_alter <- FULLWG1 %>% 
+  distinct(alter_examiner_id) %>%
+  rename(ID = alter_examiner_id)
+
+# perform a union of both dataframes to create a final node list and filter for unique nodes only 
+WG1_FinalNodes <- union_all(WG1_nodes_ego, WG1_nodes_alter)
+WG1_FinalNodes <- unique(WG1_FinalNodes)
+
+# do the same for WG2
+WG2_nodes_ego <- FULLWG2 %>% 
+  distinct(ego_examiner_id) %>%
+  rename(ID = ego_examiner_id)
+WG2_nodes_alter <- FULLWG2 %>% 
+  distinct(alter_examiner_id) %>%
+  rename(ID = alter_examiner_id)
+
+WG2_FinalNodes <- union_all(WG2_nodes_ego, WG2_nodes_alter)
+WG2_FinalNodes <- unique(WG2_FinalNodes)
+```
+
+## Edges
+
+### Create a clean edges dataframe
+
+```{r edges}
+# rename the applicants id variables in both groups 
+WG1_Edges <- FULLWG1 %>% 
+  select(ego_examiner_id, alter_examiner_id) %>% 
+  rename(From = ego_examiner_id, To = alter_examiner_id) 
+
+WG2_Edges <- FULLWG2 %>% 
+  select(ego_examiner_id, alter_examiner_id) %>% 
+  rename(From = ego_examiner_id, To = alter_examiner_id) 
+```
+
+We have a total of 542 edges for WG1 and 326 edges for WG2.
+
+## Graphs
+
+### Initialize Graphs
+
+```{r graphs}
+# create graph objects for both workgroups
+WG1_network <- graph_from_data_frame(d = WG1_Edges, vertices = WG1_FinalNodes, directed = FALSE)
+
+WG2_network <- graph_from_data_frame(d = WG2_Edges, vertices = WG2_FinalNodes, directed = FALSE)
+```
+
+## Visualize the Networks
+
+```{r graphs-visualization}
+# regular networks 
+plot(WG1_network, edge.arrow.size = 0.2, vertex.size= 5,vertex.label=NA)
+plot(WG2_network, edge.arrow.size = 0.2, vertex.size= 5,vertex.label=NA)
+
+# visualize network based on degree
+WG1_degree <- degree(WG1_network, v = V(WG1_network), mode = c("all"))
+WG2_degree <- degree(WG2_network, v = V(WG2_network), mode = c("all"))
+
+# assign degree value to nodes
+V(WG1_network)$size <- (WG1_degree) 
+plot(WG1_network, edge.arrow.size = .5, vertex.color = "green", vertex.label=NA) 
+V(WG2_network)$size <- (WG2_degree) 
+plot(WG2_network, edge.arrow.size = .5, vertex.color = "blue",vertex.label=NA)
+```
+
+We can see at a high level that there are a few extremely influential nodes across both graphs just based on degree. Lets explore a few different layout types to see if any further patterns can be identified:
+
+```{r graph-optimized}
+plot(WG1_network, layout=layout.sphere, main="sphere", vertex.label=NA, vertex.size= 5, vertex.color = "blue" )
+plot(WG2_network, layout=layout.sphere, main="sphere", vertex.label=NA, vertex.size= 5, vertex.color = "blue" )
+plot(WG1_network, layout=layout.random, main="random", vertex.label=NA, vertex.size= 5, vertex.color = "red")
+plot(WG2_network, layout=layout.random, main="random", vertex.label=NA, vertex.size= 5, vertex.color = "red")
+plot(WG1_network, layout=layout.fruchterman.reingold, main="fruchterman.reingold", vertex.label=NA, vertex.size= 5, vertex.color = "yellow")
+plot(WG2_network, layout=layout.fruchterman.reingold, main="fruchterman.reingold", vertex.label=NA, vertex.size= 5, vertex.color = "yellow")
+```
+
+## Graph Metrics
+
+To begin the analysis, we can first compute the most commonly used centrality scores for both graphs and then move on to a more advanced method of determining which centrality measure to use:
+
+```{r graph-metrics}
+# WG1
+WG1_degree <- sort(degree(WG1_network))
+WG1_betweenness <- sort(betweenness(WG1_network))
+WG1_eigen <- sort(eigen_centrality(WG1_network)$vector)
+WG1_pagerank <- sort(page_rank(WG1_network)$vector)
+
+# WG2
+WG2_degree <- sort(degree(WG2_network))
+WG2_betweenness <- sort(betweenness(WG2_network))
+WG2_eigen <- sort(eigen_centrality(WG2_network)$vector)
+WG2_pagerank <- sort(page_rank(WG2_network)$vector)
+
+# join them all together
+WG1_compare <- cbind(WG1_degree, WG1_betweenness, WG1_eigen, WG1_pagerank)
+WG2_compare <- cbind(WG2_degree, WG2_betweenness, WG2_eigen, WG2_pagerank)
+
+# convert back to dataframe
+WG1_compare <- as.data.frame(WG1_compare) 
+WG2_compare <- as.data.frame(WG2_compare) 
+
+# only look at the top 5 in each work group
+WG1_top <- WG1_compare %>% top_n(5)
+WG2_top <- WG2_compare %>% top_n(5)
+WG1_top
+WG2_top
+```
+
+For the sake of simplicity, we can turn our attention only to the **top most influential nodes** for both workgroups and observe their characteristics:
+
+```{r most-influential-nodes}
+WG1final_top_node <- (FULLWG1[FULLWG1$ego_examiner_id == 96438, ])
+WG1final_top_node[1, ] 
+WG2final_top_node <- (FULLWG2[FULLWG2$ego_examiner_id == 67690, ])
+WG2final_top_node[1, ] 
+```
+We can see that the examiners who scored the highest across all of the computed cetrality metrics were both **white males** with over 5,500 days of tenure. 
+
+## Picking the Best Centrality Measure 
+
+while there are many types of centrality measures available to determine the most influential nodes within a network, there is no established consensus in network science pertaining to a methodology for selecting and implementing the best tailored measure for a given network *(Ashtiani, 2018)*. On top of this, the topographic anatomy and features for every network will affect the output of centrality computations, and as such, one must select criteria which contains the highest level of information about the influential nodes based on the unique structure of each network. 
+
+To advance in our understanding of how to select the most optimal centrality measure given these aforementioned considerations, the package [CINNA](https://cran.r-project.org/web/packages/CINNA/CINNA.pdf) provides a few useful functions to assess which centrality measure to select.
+
+For the purpose of this analysis, we will only look at one of the workgroups in isolation and draw inference for the other based on the results of the first since the overall structure is fairly consistent across both graphs as this approach is quite time consuming. Some requirement for using several of the main functions within this package is that the network is fully connected and un-directed. Since our both networks for WG1 and WG2 have disconnected components, we have to first isolate a fully connected network and can use the largest connected component to so, as this would fairly accurately reflect the relationships between most nodes.
+
+### Isolating WG1 Largest Connected Component
+
+```{r WG1-LCC}
+# determine the largest connected component 
+components <- igraph::clusters(WG1_network, mode="weak")
+biggest_cluster_id <- which.max(components$csize)
+
+# assign it to its own variable
+vert_ids <- V(WG1_network)[components$membership == biggest_cluster_id]
+
+# create subgraph 
+WG1largest_component <- igraph::induced_subgraph(WG1_network, vert_ids)
+```
+
+To calculate the centrality types based on the graph structure, we can use the proper_centralities() function which outputs a list of 49 popular centrality metrics specific to an undirected-unweighted graphs. We can then select the first five centrality measures from the list and then pass them to the calculate_centralities() function since running all 49 measures would take several days. 
+
+We can then use the **Principle Component Analysis** algorithm to be able to distinguish the most informative centrality metric from the selected options. In this process, each centrality measure serves as a variable and the overall contribution criterion from the PCA highlights how much each measure contributes to their respective principal components. This means that the relative contribution of variables accounts for the variability with respect to their principal components. As a result of being able to identify this criteria in the PCA method, we are able to detect which centrality measures contain the most information about each central node and thus be able to ascertain the most influential nodes more accurately based on the inherent network structure for this particular connected component for WG1. 
+We can see the *sorted contribution* of the selected centrality metrics as below, using the pipe operator to apply the aforementioned steps:
+
+```{r PCA-centrality}
+# assign centrality metrics to WG1's largest connected component
+WG1_centrality <- proper_centralities(WG1largest_component)
+
+# apply PCA method to determine which metric is most important in identifying the central nodes 
+calculate_centralities(WG1largest_component, include = WG1_centrality[1:5])%>%
+  pca_centralities(scale.unit = TRUE)
+```
+We can observe that the sub-graph centrality measure has the most contribution from among the chosen 4 centrality indices, again, meaning that it contains the most information about the influential nodes from the selected metrics and thus can be used to determine central nodes influence more accurately than any other chosen metric. 
+
+Let us now compute the sub-graph centrality scores for the entire graph for both WG1 and WG2. The limitation with this approach is that it does not account for some of the most commonly used metrics, which to reiterate was limited due to the computationally exhaustive nature of this method. This particular centrality measure at a high level is "a weighted sum of the numbers of all closed walks of different lengths in the network starting and ending at the node.": [CentiServer](https://www.centiserver.org/centrality/Subgraph_Centrality/#:~:text=Subgraph%20centrality%20(SC)%20of%20a,and%20ending%20at%20the%20node.)
+
+```{r subgraph-centrality-score}
+# compute subgraph centrality
+WG1subgraph <- sort(subgraph_centrality(WG1_network, diag = FALSE))
+WG2subgraph <- sort(subgraph_centrality(WG2_network, diag = FALSE))
+
+# top nodes
+head(WG1subgraph, 1)
+head(WG2subgraph, 1)
+```
+If we were to go back and observe where these nodes sit with respect to the original centrality metric scores, we can see that the relative scope of influence both fall within the middle of the each respective work group. The results of this final analysis using PCA are not entirely conclusive as the structure of work group graphs were disjointed and thus had to be broken up to explore the limited selection of centrality metrics from the large list of 49 metrics. Further examination is warranted, perhaps on a working group that is more integrated, to finalize the recommendations as to how to identify the most appropriate centrality metric and its corresponding most influential nodes. 
