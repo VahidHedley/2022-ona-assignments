@@ -1,0 +1,396 @@
+---
+title: "Exercise 4"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(arrow)
+library(gender)
+library(wru)
+library(ggplot2)
+library(igraph)
+library(CINNA)
+library(ggraph)
+library(randomForest)
+library(skimr)
+```
+
+### Load data
+
+```{r load-data}
+applications <- read_parquet("C:/Users/hedle/OneDrive/McGill - Summer 2022/ORGB 672 - Org Network Analysis/Data/app_data_sample.parquet")
+edges <- read_csv("C:/Users/hedle/OneDrive/McGill - Summer 2022/ORGB 672 - Org Network Analysis/Data/edges_sample.csv")
+
+applications
+edges
+```
+
+
+Create a new variable which is a combination of both the issue date and the abandon date
+```{r pre-processing}
+# Create a new variable which is a combination of both the issue date and the abandon date
+applications <- applications %>% mutate(combined = coalesce(patent_issue_date,abandon_date))
+
+# compute difference in days 
+applications$app_proc_time<- as.numeric(difftime(applications$combined, applications$filing_date , units = c("days")))
+```
+
+
+# Feature engineering
+
+## Get gender for examiners
+
+We'll get gender based on the first name of the examiner, which is recorded in the field `examiner_name_first`. We'll use library `gender` for that, relying on a modified version of their own [example](https://cran.r-project.org/web/packages/gender/vignettes/predicting-gender.html).
+
+Note that there are over 2 million records in the applications table -- that's because there are many records for each examiner, as many as the number of applications that examiner worked on during this time frame. Our first step therefore is to get all *unique* names in a separate list `examiner_names`. We will then guess gender for each one and will join this table back to the original dataset. So, let's get names without repetition:
+
+```{r gender}
+# get a list of first names without repetitions
+examiner_names <- applications %>% 
+  distinct(examiner_name_first)
+
+# get a table of names and gender
+examiner_names_gender <- examiner_names %>% 
+  do(results = gender(.$examiner_name_first, method = "ssa")) %>% 
+  unnest(cols = c(results), keep_empty = TRUE) %>% 
+  select(
+    examiner_name_first = name,
+    gender,
+    proportion_female)
+
+# remove extra columns from the gender table
+examiner_names_gender <- examiner_names_gender %>% 
+  select(examiner_name_first, gender)
+
+# joining gender back to the dataset
+applications <- applications %>% 
+  left_join(examiner_names_gender, by = "examiner_name_first")
+
+# cleaning up
+rm(examiner_names)
+rm(examiner_names_gender)
+gc()
+```
+
+## Guess the examiner's race
+
+We'll now use package `wru` to estimate likely race of an examiner. Just like with gender, we'll get a list of unique names first, only now we are using surnames.
+
+```{r race}
+# get a distinct dataframe of examiner surnames
+examiner_surnames <- applications %>% 
+  select(surname = examiner_name_last) %>% 
+  distinct()
+
+# apply the predict_race() function to determine examiner's race
+examiner_race <- predict_race(voter.file = examiner_surnames, surname.only = T) %>% 
+  as_tibble()
+
+# pick a race category with the highest probability for each last name and assign it respectively 
+examiner_race <- examiner_race %>% 
+  mutate(max_race_p = pmax(pred.asi, pred.bla, pred.his, pred.oth, pred.whi)) %>% 
+  mutate(race = case_when(
+    max_race_p == pred.asi ~ "Asian",
+    max_race_p == pred.bla ~ "black",
+    max_race_p == pred.his ~ "Hispanic",
+    max_race_p == pred.oth ~ "other",
+    max_race_p == pred.whi ~ "white",
+    TRUE ~ NA_character_))
+
+# removing extra columns
+examiner_race <- examiner_race %>% 
+  select(surname,race)
+
+# join back to original dataframe
+applications <- applications %>% 
+  left_join(examiner_race, by = c("examiner_name_last" = "surname"))
+
+# cleaning up
+rm(examiner_race)
+rm(examiner_surnames)
+gc()
+```
+
+## Compute examiner's tenure 
+
+To figure out the timespan for which we observe each examiner in the applications data, let's find the first and the last observed date for each examiner. We'll first get examiner IDs and application dates in a separate table, for ease of manipulation. We'll keep examiner ID (the field `examiner_id`), and earliest and latest dates for each application (`filing_date` and `appl_status_date` respectively). We'll use functions in package `lubridate` to work with date and time values.
+
+```{r tenure}
+# consolidate examiner ID's and application dates in separate dataframe
+examiner_dates <- applications %>% 
+  select(examiner_id, filing_date, appl_status_date) 
+
+# create new variables for examiners start and end date
+examiner_dates <- examiner_dates %>% 
+  mutate(start_date = ymd(filing_date), end_date = as_date(dmy_hms(appl_status_date)))
+
+# identify earliest and latest dates for examiners and compute the difference 
+examiner_dates <- examiner_dates %>% 
+  group_by(examiner_id) %>% 
+  summarise(
+    earliest_date = min(start_date, na.rm = TRUE), 
+    latest_date = max(end_date, na.rm = TRUE),
+    tenure_days = interval(earliest_date, latest_date) %/% days(1)
+    ) %>% 
+  filter(year(latest_date)<2018)
+
+# join back to original dataframe
+applications <- applications %>% 
+  left_join(examiner_dates, by = "examiner_id")
+
+# cleaning up
+rm(examiner_dates)
+gc()
+```
+
+
+```{r working-group}
+# isolate the first three digits from examiner_art_unit variable to obtain working groups
+applications$examiner_short <- floor(applications$examiner_art_unit/10)
+
+# select the largest working group and a medium sized working group for comparisons  
+WG1 <- applications[applications$examiner_short == 162, ] 
+WG2 <- applications[applications$examiner_short == 219, ]
+# for the sake of simplicity, workgroup 212 will be defined as WG1 and workgroup 162 will be defined as WG2
+
+# drop null observations
+WG1 <- drop_na(WG1, gender)
+WG2 <- drop_na(WG2, gender)
+WG1 <- drop_na(WG1, race)
+WG2 <- drop_na(WG2, race)
+WG1 <- drop_na(WG1, tenure_days)
+WG2 <- drop_na(WG2, tenure_days)
+
+# convert categorical variables to factor 
+WG1$gender <- as.factor(WG1$gender)
+WG1$race <- as.factor(WG1$race)
+WG2$gender <- as.factor(WG2$gender)
+WG2$race <- as.factor(WG2$race)
+```
+
+# Network Analysis
+
+## Nodes
+
+### Create node dataframe
+
+We must first merge the edges dataframe with each respective work group and then define both node lists separately:  
+```{r nodes}
+# drop the nulls in the edges dataframe 
+edges <- drop_na(edges, ego_examiner_id)
+edges <- drop_na(edges, alter_examiner_id)
+
+# merge original edges dataframe with both workgroups 
+FULLWG1 <- inner_join(WG1, edges, by = "application_number", copy = FALSE) 
+FULLWG2 <- inner_join(WG2, edges, by = "application_number", copy = FALSE) 
+
+# remove extra nulls 
+FULLWG1 %>% skim()
+FULLWG2 %>% skim()
+
+# generate a nodes dataframe for WG1 for both the ego_examiner_id and alter_examiner_id 
+WG1_nodes_ego <- FULLWG1 %>% 
+  distinct(ego_examiner_id) %>%
+  rename(ID = ego_examiner_id)
+WG1_nodes_alter <- FULLWG1 %>% 
+  distinct(alter_examiner_id) %>%
+  rename(ID = alter_examiner_id)
+
+# perform a union of both dataframes to create a final node list and filter for unique nodes only 
+WG1_FinalNodes <- union_all(WG1_nodes_ego, WG1_nodes_alter)
+WG1_FinalNodes <- unique(WG1_FinalNodes)
+
+# do the same for WG2
+WG2_nodes_ego <- FULLWG2 %>% 
+  distinct(ego_examiner_id) %>%
+  rename(ID = ego_examiner_id)
+WG2_nodes_alter <- FULLWG2 %>% 
+  distinct(alter_examiner_id) %>%
+  rename(ID = alter_examiner_id)
+
+WG2_FinalNodes <- union_all(WG2_nodes_ego, WG2_nodes_alter)
+WG2_FinalNodes <- unique(WG2_FinalNodes)
+```
+
+## Edges
+
+### Create a clean edges dataframe
+
+```{r edges}
+# rename the applicants id variables in both groups 
+WG1_Edges <- FULLWG1 %>% 
+  select(ego_examiner_id, alter_examiner_id) %>% 
+  rename(From = ego_examiner_id, To = alter_examiner_id) 
+
+WG2_Edges <- FULLWG2 %>% 
+  select(ego_examiner_id, alter_examiner_id) %>% 
+  rename(From = ego_examiner_id, To = alter_examiner_id) 
+```
+
+### Initialize Graphs
+
+```{r graphs}
+# create graph objects for both workgroups
+WG1_network <- graph_from_data_frame(d = WG1_Edges, vertices = WG1_FinalNodes, directed = FALSE)
+
+WG2_network <- graph_from_data_frame(d = WG2_Edges, vertices = WG2_FinalNodes, directed = FALSE)
+```
+
+## Visualize the Networks
+
+```{r graphs-visualization}
+# regular networks 
+plot(WG1_network, edge.arrow.size = 0.2, vertex.size= 5,vertex.label=NA)
+plot(WG2_network, edge.arrow.size = 0.2, vertex.size= 5,vertex.label=NA)
+
+# visualize network based on degree
+WG1_degree <- degree(WG1_network, v = V(WG1_network), mode = c("all"))
+WG2_degree <- degree(WG2_network, v = V(WG2_network), mode = c("all"))
+
+# assign degree value to nodes
+V(WG1_network)$size <- (WG1_degree*0.1) 
+plot(WG1_network, edge.arrow.size = .5, vertex.color = "green", vertex.label=NA) 
+V(WG2_network)$size <- (WG2_degree*0.1) 
+plot(WG2_network, edge.arrow.size = .5, vertex.color = "blue",vertex.label=NA)
+
+# another type of visualization using ggraph
+ggraph(WG1_network, layout="kk")+ 
+ geom_edge_link()+
+  geom_node_point(aes(size = WG1_degree, colour = WG1_degree))
+ggraph(WG2_network, layout="kk")+ 
+ geom_edge_link()+
+  geom_node_point(aes(size = WG2_degree, colour = WG2_degree))
+```
+
+# Regression Analysis
+
+## Degree centrality join
+
+```{r join-degree-1}
+# convert vector to dataframe
+WG1_degree <- as.data.frame(WG1_degree) 
+WG2_degree <- as.data.frame(WG2_degree) 
+
+# assign index as a new column to merge with original WG dataframe
+WG1_degree <- cbind(ego_examiner_id = rownames(WG1_degree), WG1_degree)
+rownames(WG1_degree) <- 1:nrow(WG1_degree)
+WG2_degree <- cbind(ego_examiner_id = rownames(WG2_degree), WG2_degree)
+rownames(WG2_degree) <- 1:nrow(WG2_degree)
+```
+
+
+```{r join-degree-2}
+# convert examiner_id into numeric to perform merge with original dataframe
+WG1_degree <- WG1_degree %>% mutate(across(where(is.character), as.numeric))
+WG2_degree <- WG2_degree %>% mutate(across(where(is.character), as.numeric))
+typeof(WG1_degree$ego_examiner_id)
+
+# merge degree centrality with WG dataframes  
+WG1Final <- left_join(FULLWG1, WG1_degree, by = "ego_examiner_id", copy = TRUE)  
+WG2Final <- left_join(FULLWG2, WG2_degree, by = "ego_examiner_id", copy = TRUE)  
+```
+
+## Overview of Degree Centrality for Both WG's
+
+```{r centrality-distribution}
+boxplot(WG1Final$WG1_degree,WG2Final$WG2_degree,main = "Comparison of Degree", ylab = "Degree Centrality", names = c("WG1", "WG2"))
+```
+
+## Simple linear regression
+
+Run linear regression to highlight patterns between centrality and app_proc_time:
+
+```{r ols}
+WG1_reg <- lm(app_proc_time~WG1_degree, data = WG1Final)
+summary(WG1_reg)
+WG2_reg <- lm(app_proc_time~WG2_degree, data = WG2Final)
+summary(WG2_reg)
+```
+
+## Control for other variables which may influence the relationship
+
+Take a quick look at the dataset again:
+
+```{r view-dataset}
+str(WG1Final)
+```
+
+
+```{r collinearity}
+# since we do not have a clear data dictionary for this dataset, we can run a quick correlation check to confirm that numeric features do not exhibit collinearity 
+quantvars <- WG1Final[, c(7, 8, 9, 10,14,18,23,28)]
+quantvars <- quantvars %>% mutate(across(where(is.character), as.numeric))
+corr_matrix=cor(quantvars)
+round(corr_matrix,2)
+```
+We can observe that there is no observable collinearity between the quantitative features within this dataset, so we can proceed to join and experiment with various combinations.
+
+## Random Forest Feature Importance
+
+Let us run a random forest feature importance to observe which of the other variables may be helpful in explaining processing times and then experiment with different combinations, including interaction terms with degree centrality.
+
+```{r wg1-randomforest}
+# only focus on important variables
+WG1forest_model <- randomForest(app_proc_time~examiner_art_unit+uspc_class+uspc_subclass+disposal_type + gender + race + tenure_days + WG1_degree, ntree=500, data=WG1Final, importance=TRUE, na.action = na.omit)
+WG1forest_model
+importance(WG1forest_model)
+varImpPlot(WG1forest_model)
+```
+
+We can see a large improvement in performance using this tree-based model for WG1 and including a few more features from with an r-squared value increasing from 0.0009497 to 55.85. From these results, it seems that broader technology centers under which certain working groups resides seem to have a larger influence in determining the number of days to abandon or finalize a patent, perhaps indicating that some TC's are more efficient at processing patents. The relative positioning of an examiner within the network, as expressed by their degree score is fourth most important when looking at trying to understand the features which influence processing times, which we will come back to in the final conclusions. 
+
+Looking at this increase in performance we can safely infer that the out-of-bag predictions for this random forest model explain the variance of app_proc_time of the training set much better than when running our initial simple regression. Let's look at WG2 and then include some of other terms back into our initial regression model: 
+
+```{r wg2-randomforest}
+# only focus on important variables
+WG2forest_model <- randomForest(app_proc_time~examiner_art_unit+uspc_class+uspc_subclass+disposal_type + gender + race + tenure_days + WG2_degree, ntree=500, data=WG2Final, importance=TRUE, na.action = na.omit)
+WG2forest_model
+importance(WG2forest_model)
+varImpPlot(WG2forest_model)
+```
+
+## Multiple regression
+
+Now lets run our multiple regression model and observe the results when including more features: 
+
+```{r multiple-reg}
+WG1_reg2 <- lm(app_proc_time~examiner_art_unit+uspc_class+uspc_subclass+as.factor(disposal_type) + gender + race + tenure_days + WG1_degree, data = WG1Final)
+summary(WG1_reg2)
+WG2_reg2 <- lm(app_proc_time~examiner_art_unit+uspc_class+uspc_subclass+as.factor(disposal_type) + gender + race + tenure_days + WG2_degree, data = WG2Final)
+summary(WG2_reg2)
+```
+There doesn't seem to be conclusive evidence that gender and race have a significant influence on app_proc_time but we can try to combine them with degree to see if there is any improvement in model performance: 
+
+## Adding interaction terms
+
+```{r multiple-reg-interaction}
+WG1_reg3 <- lm(app_proc_time~examiner_art_unit+uspc_class+uspc_subclass+as.factor(disposal_type) + gender + race + tenure_days + WG1_degree*gender, data = WG1Final)
+summary(WG1_reg3)
+WG2_reg3 <- lm(app_proc_time~examiner_art_unit+uspc_class+uspc_subclass+as.factor(disposal_type) + gender + race + tenure_days + WG2_degree*gender, data = WG2Final)
+summary(WG2_reg3)
+```
+Adjusted R-squared increased for WG2 with the introduction of this new interaction term increased and the new term still remained statistically significant, even though the magnitude of significance decreased by one order. The higher coefficient value tells us that we can reject our initial hypothesis that the relationship between degree and processing time is indeed different than degree in conjunction with the examiner being a male. This may be other confounding factors not included within this examination, but it is an interesting point to note nevertheless. 
+
+The dynamic between the interaction with gender and degree for WG1 was inconclusive.
+
+# Final Conclusions
+
+We can see a very large improvement in performance from the original simple linear regression models which only incorporated degree when looking at the relationship between processing times and centrality, in which we saw the r-squared improve for WG1 from 0.0009497 to 0.8062 and 0.04051 to 0.5468 for WG2. Some interesting observations are that in both the simple regression model and multivariate models, for WG2, the examiners degree value was highly statistically significant. If we were to look at the *distribution* of degree scores we can see a lower average degree score indicating a more normalized and even distribution of centrality scores across all nodes. Additionally, the topography of the networks across both working groups varies and we can observe that WG2 is more densely connected with higher betweenness and has fewer disconnected components. WG1 has a few highly influential nodes within the center of the network but many sitting outside only connected by one or two connected short paths. We can infer that the negative relationship between processing time and degree for WG1 may be due to the fact that these few influential examiners are overworked and doing a majority of the work within their respective working groups. Furthermore, we can ascertain that the more connected a network is the faster the processing time will be for a patent, which will be further explained by exploring the coefficient values for degree below. 
+
+## Random Forest Feature Importance
+
+Looking at the feature importance for both WG1 and WG2, we can see a noticable difference in the positioning of the degree scores, wherein which degree for WG2 is ranked as being second most important in predicting processing times and for WG1 is ranked as fourth. This is further confirmation that the relative topological structure a network has influences the speed in which an examiner abandons or finalizes their respective patent.  
+
+## Regression Degree Coefficient Values 
+
+Additionally, another interesting observation that provides for insightful inference is the value of the coefficients for degree centrality across both networks. For WG2 we can see a positive correlation between degree and processing times, with a coefficient value of 5.78. For WG1 we can see an inverse relationship with a stronger effect, with a degree centrality coefficient of -12.32 indicating that the longer it takes process the patent the smaller would be the extent of the connections between the edges within the network. This also could mean that with the passing of time the edges in the network for WG1 hit a plateau, saturate and remain stagnant over several months or years while with WG2 new examiners are consistently providing advice to new people as time passes.   
+
+## Implications for USPTO
+The organic chemistry workgroup seems to have two separate components and units working within the existing workgroup, while the software development workgroup has a greater degree of interconnectedness amongst the examiners providing advice. This may be due to the nature of the industries selected, in which the organic chemistry TC deals with distinct functions pertaining to completely different areas of research, as opposed to the software development workgroup where most of the innovations are confined to relatively similar domains.
+
+## Size of dataset for analysis
+
+An important point to note is that the total size of the final datasets used for modelling in this exercise were quite small, with 326 observations for WG1 and 495 for WG2. With this in mind, it is prudent to examine other avenues to improve the reliability of the results through selecting workgroups in technology centers outside of organic chemistry (162) and Interprocess Communication and Software Development (219).
