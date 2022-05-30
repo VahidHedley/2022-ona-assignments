@@ -1,0 +1,120 @@
+Exercise 5
+================
+
+# What is complex contagion and how it’s different from simple contagion (you may want to refer to readings – Centola)
+
+Before we delve into the descriptions of simple and complex contagion,
+we can first develop some context for this concept by exploring a few
+examples. As expressed in his book, *Centola* outlines how the certain
+innovations that were previously rejected all of the sudden come into
+the spotlight, movements such as black lives rights emerge out of the
+waterworks after decades of African American violence and oppression,
+and substances such as marijuana all of the sudden become socially
+acceptable despite being illegal for decades prior. These points bring
+to light a key question - what are the types of attributes which make
+some innovations more successful than others? *Centola* argues that at
+their core, these success stories spread through social networks. For
+decades our presumption around social change was predicated on this
+notion that change spreads like a virus, and this metaphor of a virus
+can be extended to modern day social media influencers in which
+inference can be made to state that well-connected individuals can play
+a role in the spread of information. Another example of this virus
+metaphor can extend to domains such as marketing, where the term
+stickiness refers to a KPI for a campaign and how well it sticks with
+its audience, where certain ‘viruses’ are particularly infectious.
+
+While this metaphor of explaining contagion is useful in developing a
+conceptual understanding of the dynamic nature of the spread of ideas
+and ‘viruses’, this metaphor has some limitations as to instill real
+change you must also change people’s beliefs and behaviors which is much
+harder. Information can spread quickly but entrenched sentiments and
+behaviours remain the same, especially as a person gets older and
+becomes less likely to accept new information contrary to their core
+beliefs. Cognitive dissonance, within this context, is another concept
+which further helps us to understand how difficult it is to actively
+change core beliefs where someone can be made aware of a certain
+objective truth but decide to act contrary nevertheless. This discussion
+brings us to this notion of **simple contagions**, which expresses the
+idea that catchy ideas and memes spread quickly to everyone but lack any
+lasting impact on what we think or the way we live. For this information
+to become entrenched, a powerful coercive force in causing individuals
+to adopt new beliefs are social networks. The network around us shapes
+how we respond to an innovation, just as we saw in the in-class exercise
+in which we unconsciously believe that our drinking patterns are similar
+to our peers. This deeper process, which again is change at the level of
+ones core beliefs and fundamental tenants, is referred to as **complex
+contagion** and is extremely interesting in learning about how to
+influence change. When we define social networks, we are outwardly
+expressing any personal network which makes up our social world, and in
+todays ditigal era, the online environment predominates this reality.
+One important conclusion drawn by *Centola* is that effective social
+change is not as much about information but rather norms. In this light,
+social networks are the prisms which determine how we see those
+behaviors and interpret those ideas. Within these networks, we can also
+observe network bias which defines the way that our social networks
+invisibly shape the norms we follow.
+
+# What does complex contagion mean for diffusion of behaviors in organization?
+
+Complex contagion has the propensity to cause radical change in
+organizational behaviour as new beliefs or ideas are disseminated
+throughout a network. Drawing on our previous definition of complex
+contagions, being able to cause change in ones beliefs and consequently
+their engagement with others within an organization can be a result of
+the network bias that arises. When others observe certain behaviours
+consistently in others over time, there is a much larger likelihood that
+they will eventually take up that behavior. This became evident within
+scientific community during the early days of social psychology, as we
+had discussed in class, with Milgram and his group of researchers with
+their exploration on obedience, bringing to light fascinating realities
+about human social dynamics, albeit unethical in its approach when
+compared to todays standards. Another notable case looking at
+influencing social change at the individual level is the Stanford Prison
+Experiments, which sheds light on the fact that group behaviors are
+heavily influenced by the power dynamics present and behavioral
+expectations placed on specific roles. In both of these examples,
+individuals were influenced by their key network players to perform
+certain types of behaviors which were very much against their core
+beliefs. The real power of complex contagion can essentially cause
+radical organizational change if these correct network players are
+identified and an appropriate mechanisms or channels to deliver
+information are identified. Simple contagion, broadly speaking is a way
+for us to observe others behaviours as a signal of the overall
+credibility of that behaviour which reduces the risk associated with
+that particular contagion. As this source of contagion gets more and
+more repeated and normalized, it will eventually become a part of the
+culture of that organization.
+
+# How can we use the threshold models to better manage
+
+Models of collective behaviour are typically generated in situations
+where there are two options and the overall benefits of each outcome is
+contingent on how many other actors chose which alternative
+*(Granovetter, 1978)*. The main concept within this framework is this
+notion of ‘threshold’, which is defined as the proportion of others
+which need to make a decision before a given actor does and the point in
+which the overall net benefits exceed net costs for that actor. This
+model begins with a frequency distribution of thresholds, which
+calculates the most optimal ‘equilibrium’ for making each decision
+*(Granovetter, 1978)*. With this in mind, let us explore how this
+applies in the following scenarios:
+
+## Prosocial behavior in organizations
+
+-   Establishing thresholds for altruistic behaviors in the organization
+
+## Learning
+
+-   Having pre-defined outcomes for learning objectives
+
+## Toxic or unproductive behaviors
+
+-   Ensuring a consistent definition of toxic and unproductive behaviors
+    where any deviance from the established norm results in corrective
+    action from a superior authority
+
+# Sources:
+
+Granovetter, Mark. Threshold Models of Collective Behavior. The
+University of Chicago, 1978,
+<https://www.uzh.ch/cmsssl/suz/dam/jcr:ffffffff-f952-f950-ffff-ffff87498b5e/03.18_granovetter_78.pdf>.
